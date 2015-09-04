@@ -7,7 +7,7 @@ Inside script you can set up some things.
 # Usage
 `g action`
 
-where `action` is:
+where `action` is:  
 `e` - encrypt message  
 `d` - decrypt message  
 `s` - sign message  
