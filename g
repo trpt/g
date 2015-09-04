@@ -20,6 +20,38 @@ rofi_prompt="Search: "
 
 # Code       #
 ##############
+PROGRAM="${0##*/}"
+
+usage() {
+  cat <<EOF
+
+GnuPG wrapper by Trepet
+
+usage: $PROGRAM action
+
+  action:
+    e - encrypt message
+    d - decrypt message
+    s - sign message
+    se - sign & enrypt message
+    ef - encrypt file
+    df - decrypt file
+
+  Examples:
+    $PROGRAM d
+    $PROGRAM e
+    $PROGRAM df
+
+  Config (check source)
+    GPG home dir:
+    $GNUPGHOME
+EOF
+}
+
+if [[ $1 = @(-h|--help) ]]; then
+  usage
+  exit $(( $# ? 0 : 1 ))
+fi
 
 if [[ -z $menu ]]; then
 [[ ($(command -v dmenu)) ]] && menu='dmenu'
