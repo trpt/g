@@ -14,12 +14,20 @@ where `action` is:
 `se` - sign & encrypt message  
 `ef` - encrypt file  
 `df` - decrypt file  
+`im` - import key  
+`ex` - export key  
+`gen` - generate new key  
+`del` - delete key(s)  
 
 Or simply run script to choose action
 
-# Dependencies
-bash  
-zenity  
-rofi or dmenu  
+# Notes
+Using 4096 RSA with no expire date for key generation.  
+Expired and revoked uids are ignored. Use `--invalid` parameter with `del` or `ex` action to list those.  
 
-Tested in Arch Linux
+# Dependencies
+`bash`  
+`zenity`  
+optional `rofi` or `dmenu`  
+
+Tested in Arch Linux and Tails
