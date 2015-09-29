@@ -44,7 +44,7 @@ usage: $PROGRAM [action]
     s - sign message
     se - sign & enrypt message
     ef - encrypt file
-    df - decrypt file
+    df - decrypt/verify file
     im - import key
     ex - export key
     gen - generate new key
@@ -168,8 +168,8 @@ edit_message () {
   [[ $decrypt -eq 1 ]] && local oklabel='Decrypt' || local oklabel='Choose key(s)'
   if [[ $tails -eq 1 && -n $message ]]; then
     echo -e "$message" > "$tmpfile"
-    zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" --filename="$tmpfile" 2>/dev/null
-    rm "$tmpfile"
+    zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" --filename="$tmpfile" 2>/dev/null && \
+    rm "$tmpfile" || $(rm "$tmpfile" && false)
   else
     zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" 2>/dev/null
   fi
@@ -204,7 +204,7 @@ decrypt_message () {
     echo -e "$message" | zenity $zenity_size --title="Decrypted text" --text-info 2>/dev/null
   fi & \
   if [[ $message == *'-----BEGIN PGP SIGNED MESSAGE-----'* ]]; then
-    sig_check=$(echo -e "$message" | gpg --verify --logger-fd 1 2>/dev/null)
+    sig_check=$(echo -e "$message" | gpg --no-tty --verify --logger-fd 1 2>/dev/null)
     zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg:}"
   fi
 }
@@ -265,14 +265,22 @@ decrypt_file () {
   file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
   filename="$(basename $file_path)"
   dirname="$(dirname $file_path)"
-  [[ "${filename##*.}" == 'gpg' ]] && output="${dirname}/${filename%.*}" || output="${file_path}.output"
-  if [[ -f "$output" ]]; then
-    zenity --info --title="$zenity_title" --no-markup --text="File $output exists, delete or remove it first"
-    exit 1
+  [[ -f "${file_path}.asc" ]] && file_verify=1 file_path="${file_path}.asc"
+  [[ -f "${file_path}.sig" ]] && file_verify=1 file_path="${file_path}.sig"
+  [[ "${filename##*.}" == 'sig' || "${filename##*.}" == 'asc' ]] && file_verify=1
+  if [[ $file_verify -eq 1 ]]; then
+    sig_check=$(gpg --logger-fd 1 --no-tty --verify "$file_path" 2>/dev/null)
+    zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg:}"
+  else
+    [[ "${filename##*.}" == 'gpg' ]] && output="${dirname}/${filename%.*}" || output="${file_path}.output"
+    if [[ -f "$output" ]]; then
+      zenity --info --title="$zenity_title" --no-markup --text="File $output exists, delete or remove it first"
+      exit 1
+    fi
+    gpg --no-tty --output "$output" --decrypt "$file_path" && \
+    zenity --info --no-markup --title="$zenity_title" --text="File decrypted as $output" ||
+    zenity_die "Error :( Check console output"
   fi
-  gpg --no-tty --output "$output" --decrypt "$file_path" && \
-  zenity --info --no-markup --title="$zenity_title" --text="File decrypted as $output" ||
-  zenity_die "Error :( Check console output"
 }
 
 addkey () {
@@ -316,7 +324,7 @@ delkey () {
 }
 
 if [[ -z $1 ]]; then
-  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Decrypt file" FALSE "Import key" FALSE "Export key" FALSE "Generate key" FALSE "Delete key")
+  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Decrypt / Verify file" FALSE "Import key" FALSE "Export key" FALSE "Generate key" FALSE "Delete key")
   case $ask in
     "Encrypt")
       set e
@@ -338,7 +346,7 @@ if [[ -z $1 ]]; then
       set ef
     ;;
 
-    "Decrypt file")
+    "Decrypt / Verify file")
       set df
     ;;
 
