@@ -9,11 +9,11 @@ Inside script you can set up some things.
 
 where `action` is:  
 `e` - encrypt message  
-`d` - decrypt message  
+`d` - decrypt/verify message  
 `s` - sign message  
 `se` - sign & encrypt message  
 `ef` - encrypt file  
-`df` - decrypt file  
+`df` - decrypt/verify file  
 `im` - import key  
 `ex` - export key  
 `gen` - generate new key  
