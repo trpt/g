@@ -13,10 +13,13 @@
 
 # Dialog options
 zenity_size="--height=600 --width=800 "
-zenity_ask_size="--height=380 --width=250 "
+zenity_ask_size="--height=450 --width=250 "
 zenity_key_size_h="--height=500"
 zenity_key_size_w="--width=350"
 rofi_prompt="Search: "
+
+# GPG cipher for symmetric encription
+gpg_sym_cipher='--cipher-algo AES256'
 
 # Debug
 #export LANG=en-us
@@ -40,10 +43,12 @@ usage: $PROGRAM [action]
 
   action:
     e - encrypt message
+    ec - encrypt message symmetrically
     d - decrypt/verify message
     s - sign message
     se - sign & enrypt message
     ef - encrypt file
+    efc - encrypt file symmetrically
     df - decrypt/verify file
     im - import key
     ex - export key
@@ -97,7 +102,7 @@ zenity_die () {
 
 rofi_cmd () {
   [[ $secret -eq 1 ]] && rofi_mesg='<b>Choose secret key to sign</b>' || rofi_mesg='<b>Choose key(s), Esc to finish</b>'
-  rofi -dmenu -i -bg \#222222 -fg \#ffffff -hlbg \#222222 -hlfg \#11dd11 -opacity 90 -lines 20 -width -60 -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
+  rofi -dmenu -i -bg \#222222 -fg \#ffffff -hlbg \#222222 -hlfg \#11dd11 -opacity 90 -lines 20 -width -60 -font "mono 16" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
 }
 
 dmenu_cmd () {
@@ -125,8 +130,8 @@ list_uids () {
 
 import_key () {
   local oklabel='Import'
-  local result=$(zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" | gpg --import --logger-fd 1)
-  zenity --info --no-markup --title="Importing result" --text="${result//gpg:}"
+  local result=$(zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" | gpg --no-tty --import -v --logger-fd 1)
+  zenity --info --no-markup --title="Importing result" --text="${result//gpg: }"
 }
 
 export_key () {
@@ -165,7 +170,7 @@ choose_uids () {
 }
 
 edit_message () {
-  [[ $decrypt -eq 1 ]] && local oklabel='Decrypt' || local oklabel='Choose key(s)'
+  [[ $decrypt -eq 1 ]] && local oklabel='Decrypt' || local oklabel='Encrypt'
   if [[ $tails -eq 1 && -n $message ]]; then
     echo -e "$message" > "$tmpfile"
     zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" --filename="$tmpfile" 2>/dev/null && \
@@ -177,10 +182,10 @@ edit_message () {
 
 encrypt_message () {
   if [[ ${#keys[@]} -ne 0 ]]; then
-    echo "${keys[@]}"
+    echo "${keys[@]}" # debug
     echo "$message" | gpg --armor --encrypt --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
     zenity $zenity_size --text-info --title="Encrypted for: $(echo -e ${keys[@]//-r})" 2>/dev/null || \
-    $(unset keys && encrypt_message)
+    (unset keys && encrypt_message)
   else
     if [[ -z "$message" ]]; then
       message=$(edit_message)
@@ -193,9 +198,21 @@ encrypt_message () {
   fi
 }
 
+encrypt_message_sym () {
+  if [[ -z "$message" ]]; then
+    message=$(edit_message)
+  else
+    message=$(echo -e "$message" | edit_message)
+  fi
+  [[ $? -eq 1 ]] && exit 1
+  echo "$message" | gpg --armor --symmetric $gpg_sym_cipher --logger-fd 1 2>/dev/null | \
+  zenity $zenity_size --text-info --title="Encrypted" 2>/dev/null || \
+  encrypt_message_sym
+}
+
 decrypt_message () {
   encrypted_message="$(edit_message)" || exit 1
-  message=$(echo "$encrypted_message" | gpg -q --decrypt --no-tty --logger-fd 1 2>/dev/null)
+  message=$(echo "$encrypted_message" | gpg --decrypt --no-tty --logger-fd 1 2>/dev/null | sed '0,/^gpg: /s/^gpg: /\n\nGPG:\ngpg: /' | sed 's/^gpg: //')
   if [[ $tails -eq 1 ]]; then
     echo -e "$message" > "$tmpfile"
     zenity $zenity_size --title="Decrypted text" --text-info --filename="$tmpfile" 2>/dev/null
@@ -204,8 +221,8 @@ decrypt_message () {
     echo -e "$message" | zenity $zenity_size --title="Decrypted text" --text-info 2>/dev/null
   fi & \
   if [[ $message == *'-----BEGIN PGP SIGNED MESSAGE-----'* ]]; then
-    sig_check=$(echo -e "$message" | gpg --no-tty --verify --logger-fd 1 2>/dev/null)
-    zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg:}"
+    sig_check=$(echo -e "$message" | gpg --no-tty -v --verify --logger-fd 1 2>/dev/null)
+    zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg: }"
   fi
 }
 
@@ -261,6 +278,18 @@ encrypt_file () {
   fi
 }
 
+encrypt_file_sym () {
+  file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
+  if [[ -f "${file_path}.gpg" ]]; then
+    zenity --info --title="$zenity_title" --text="File ${file_path}.gpg exists, delete or remove it first"
+    exit 1
+  fi
+  [[ $? -eq 1 ]] && exit 1
+  gpg --output "${file_path}.gpg" $gpg_sym_cipher --symmetric "$file_path" && \
+  zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg)" || \
+  zenity_die "Error :( Check console output"
+}
+
 decrypt_file () {
   file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
   filename="$(basename $file_path)"
@@ -269,10 +298,10 @@ decrypt_file () {
   [[ -f "${file_path}.sig" ]] && file_verify=1 file_path="${file_path}.sig"
   [[ "${filename##*.}" == 'sig' || "${filename##*.}" == 'asc' ]] && file_verify=1
   if [[ $file_verify -eq 1 ]]; then
-    sig_check=$(gpg --logger-fd 1 --no-tty --verify "$file_path" 2>/dev/null)
-    zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg:}"
+    sig_check=$(gpg -v --logger-fd 1 --no-tty --verify "$file_path" 2>/dev/null)
+    zenity --info --no-markup --title="Signature check" --text="${sig_check//gpg: }"
   else
-    [[ "${filename##*.}" == 'gpg' ]] && output="${dirname}/${filename%.*}" || output="${file_path}.output"
+    [[ "${filename##*.}" == 'gpg' || "${filename##*.}" == 'pgp' ]] && output="${dirname}/${filename%.*}" || output="${file_path}.output"
     if [[ -f "$output" ]]; then
       zenity --info --title="$zenity_title" --no-markup --text="File $output exists, delete or remove it first"
       exit 1
@@ -293,7 +322,7 @@ addkey () {
   [[ -n ${newkey[1]} ]] && gen_comment="Name-Comment: ${newkey[1]}"
   [[ -n ${newkey[2]} ]] && gen_email="Name-Email: ${newkey[2]}"
   genkey_output=$(genkey)
-  zenity --info --no-markup --title="Key generation" --text="${genkey_output//gpg:}"
+  zenity --info --no-markup --title="Key generation" --text="${genkey_output//gpg: }"
 }
 
 genkey () {
@@ -316,18 +345,22 @@ EOF
 delkey () {
   choose_uids
   if [[ ${#keys[@]} -ne 0 ]]; then
-    delkey_output=$(gpg --batch --yes --no-tty --logger-fd 1 --delete-keys "${keys[@]}")
+    delkey_output=$(gpg -v --batch --yes --no-tty --logger-fd 1 --delete-keys "${keys[@]}")
     [[ $? -eq 0 ]] && \
     zenity --info --no-markup --title="Key deletion" --text="Key(s) deleted" || \
-    zenity_die "${delkey_output//gpg:}"
+    zenity_die "${delkey_output//gpg: }"
   fi
 }
 
 if [[ -z $1 ]]; then
-  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Decrypt / Verify file" FALSE "Import key" FALSE "Export key" FALSE "Generate key" FALSE "Delete key")
+  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Encrypt sym." FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Encrypt file sym." FALSE "Decrypt / Verify file" FALSE "Import key" FALSE "Export key" FALSE "Generate key" FALSE "Delete key")
   case $ask in
     "Encrypt")
       set e
+    ;;
+
+    "Encrypt sym.")
+      set ec
     ;;
 
     "Decrypt / Verify")
@@ -344,6 +377,10 @@ if [[ -z $1 ]]; then
 
     "Encrypt file")
       set ef
+    ;;
+
+    "Encrypt file sym.")
+      set efc
     ;;
 
     "Decrypt / Verify file")
@@ -375,6 +412,11 @@ case $1 in
     encrypt_message
   ;;
 
+  ec)
+    zenity_title='Go ahead and type...'
+    encrypt_message_sym
+  ;;
+
   d)
     zenity_title='Paste encrypted message here'
     decrypt=1
@@ -396,6 +438,11 @@ case $1 in
     zenity_title='Encrypt file'
     encrypt=1
     encrypt_file
+  ;;
+
+  efc|fec)
+    zenity_title='Encrypt file'
+    encrypt_file_sym
   ;;
 
   df|fd)
