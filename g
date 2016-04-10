@@ -13,9 +13,9 @@
 
 # Dialog options
 zenity_size="--height=600 --width=800 "
-zenity_ask_size="--height=450 --width=250 "
+zenity_ask_size="--height=510 --width=280 "
 zenity_key_size_h="--height=500"
-zenity_key_size_w="--width=350"
+zenity_key_size_w="--width=400"
 rofi_prompt="Search: "
 
 # GPG cipher for symmetric encription
@@ -27,12 +27,6 @@ gpg_sym_cipher='--cipher-algo AES256'
 # Code       #
 ##############
 PROGRAM="${0##*/}"
-
-# Tails workaround
-if [[ $(cat /etc/hostname) == amnesia ]]; then
-  tails=1
-  tmpfile="/run/shm/gw.tmp.${RANDOM}"
-fi
 
 usage() {
   cat <<EOF
@@ -83,6 +77,14 @@ if [[ !($(command -v zenity)) ]]; then
   exit 1
 fi
 
+# Old zenity workaround
+if [[ $(printf "3.18\n$(zenity --version)\n" | sort -V | head -1) != '3.18' ]]; then
+  old_zenity=1
+  g_tmp_dir="/dev/shm/g_tmp"
+  tmpfile="$g_tmp_dir/.${RANDOM}"
+  [[ -d "$g_tmp_dir" ]] || mkdir --mode=go-rwx "$g_tmp_dir" || exit 1
+fi
+
 if [[ -z $menu ]]; then
   menu='zenity'
   [[ ($(command -v dmenu)) ]] && menu='dmenu'
@@ -93,6 +95,11 @@ fi
 #  echo "dmenu or rofi is needed to run this script"
 #  exit 1
 #fi
+
+die() {
+	echo "$@" >&2
+	exit 1
+}
 
 zenity_die () {
   #error_mesg=$(echo -e $@ | sed -e 's/\\/\\\\/g' -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
@@ -122,9 +129,9 @@ list_uids () {
   more_grep=( 'grep' '-vE' '^uid:e|^uid:r|^uid:n|^uid:i' )
   [[ $invalid -eq 1 ]] && more_grep=( 'grep' '-E' '^uid:e|^uid:r|^uid:n|^uid:i' )
   if [[ $menu == 'zenity' ]]; then
-    gpg $gpg_list --with-colons --fixed-list-mode | grep uid: | "${more_grep[@]}" | cut -f10 -d ":" | sort -df | sed -e 's/^/FALSE\n/'| zenity_cmd
+    gpg $gpg_list --with-colons --fixed-list-mode | grep uid: | "${more_grep[@]}" | cut -f10 -d ":" | sort -df | sed -e 's/\\x3a/:/' | sed -e 's/^/FALSE\n/'| zenity_cmd
   else
-    gpg $gpg_list --with-colons --fixed-list-mode | grep uid: | "${more_grep[@]}" | cut -f10 -d ":" | sort -df | ${menu}_cmd
+    gpg $gpg_list --with-colons --fixed-list-mode | grep uid: | "${more_grep[@]}" | cut -f10 -d ":" | sort -df | sed -e 's/\\x3a/:/' | ${menu}_cmd
   fi
 }
 
@@ -171,7 +178,7 @@ choose_uids () {
 
 edit_message () {
   [[ $decrypt -eq 1 ]] && local oklabel='Decrypt' || local oklabel='Encrypt'
-  if [[ $tails -eq 1 && -n $message ]]; then
+  if [[ $old_zenity -eq 1 && -n $message ]]; then
     echo -e "$message" > "$tmpfile"
     zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" --filename="$tmpfile" 2>/dev/null && \
     rm "$tmpfile" || $(rm "$tmpfile" && false)
@@ -213,7 +220,7 @@ encrypt_message_sym () {
 decrypt_message () {
   encrypted_message="$(edit_message)" || exit 1
   message=$(echo "$encrypted_message" | gpg --decrypt --no-tty --logger-fd 1 2>/dev/null | sed '0,/^gpg: /s/^gpg: /\n\nGPG:\ngpg: /' | sed 's/^gpg: //')
-  if [[ $tails -eq 1 ]]; then
+  if [[ $old_zenity -eq 1 ]]; then
     echo -e "$message" > "$tmpfile"
     zenity $zenity_size --title="Decrypted text" --text-info --filename="$tmpfile" 2>/dev/null
     rm "$tmpfile"
@@ -230,14 +237,13 @@ sign_message () {
   unset secret
   if [[ -n $sign_key ]]; then
     if [[ $encrypt -eq 1 ]]; then
-      choose_uids
-      [[ $? -eq 1 ]] && sign_message
+      choose_uids || sign_message
       #echo "R: ${keys[@]}" # debug
       #echo "S: $sign_key" # debug
       echo -e "$message" | gpg -es --armor --no-tty --local-user "$sign_key" --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
       zenity $zenity_size --title="Signed by $(echo -e $sign_key) & encrypted for: $(echo -e ${keys[@]//-r})" --text-info 2>/dev/null
     else
-      if [[ $tails -eq 1 ]]; then
+      if [[ $old_zenity -eq 1 ]]; then
         echo -e "$message" | gpg --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
         zenity $zenity_size --title="Signed by $(echo -e $sign_key)" --text-info --filename="$tmpfile" 2>/dev/null
         rm "$tmpfile"
