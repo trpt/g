@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
+# v. 1.4
 # © GPLv3
 
 # Set if necessary
@@ -108,8 +109,9 @@ zenity_die () {
 }
 
 rofi_cmd () {
-  [[ $secret -eq 1 ]] && rofi_mesg='<b>Choose secret key to sign</b>' || rofi_mesg='<b>Choose key(s), Esc to finish</b>'
-  rofi -dmenu -i -bg \#222222 -fg \#ffffff -hlbg \#222222 -hlfg \#11dd11 -opacity 90 -lines 20 -width -60 -font "mono 16" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
+  rofi_mesg='<b>Choose key(s), Esc to finish</b>'
+  [[ $secret -eq 1 ]] && rofi_mesg='<b>Choose secret key to sign</b>'
+  rofi -dmenu -i -color-window "#232832, #232832, #404552" -color-normal "#232832, #dddddd, #232832, #232832, #00CCFF" -color-active "#232832, #00b1ff, #232832, #232832, #00b1ff" -color-urgent "#232832, #ff1844, #232832, #232832, #ff1844" -opacity 90 -lines 20 -width -60 -font "mono 16" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
 }
 
 dmenu_cmd () {
@@ -117,7 +119,7 @@ dmenu_cmd () {
 }
 
 zenity_cmd () {
-  [[ $encrypt -eq 1 ]] && zen_list_param='--checklist' zen_sep='|-r ' title='--title=Public keys' text='--text=Check encryption keys'
+  [[ $encrypt -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Public keys' text='--text=Check encryption keys'
   [[ $secret -eq 1 ]] && zen_list_param='--radiolist' zen_sep='|' title='--title=Secret keys' text='--text=Choose signing key'
   [[ $export -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Export keys' text='--text=Check keys to export'
   [[ $delete -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Delete key(s)' text='--text=Choose key(s) to delete'
@@ -125,7 +127,8 @@ zenity_cmd () {
 }
 
 list_uids () {
-  [[ $secret -eq 1 ]] && gpg_list='-K' || gpg_list='-k'
+  gpg_list='-k'
+  [[ $secret -eq 1 ]] && gpg_list='-K'
   more_grep=( 'grep' '-vE' '^uid:e|^uid:r|^uid:n|^uid:i' )
   [[ $invalid -eq 1 ]] && more_grep=( 'grep' '-E' '^uid:e|^uid:r|^uid:n|^uid:i' )
   if [[ $menu == 'zenity' ]]; then
@@ -154,25 +157,28 @@ export_key () {
 choose_uids () {
   if [[ $menu == 'zenity' ]]; then
     unset keys
-    if [[ $encrypt -eq 1 ]] && [[ $secret -ne 1 ]]; then
-      uid_output="-r $(list_uids)"
-    elif [[ $secret -ne 1 ]]; then
+    if [[ $secret -ne 1 ]]; then
       uid_output="$(list_uids)"
     fi && \
-    #echo "$uid_output" && \ # debug
     local IFS='|' && \
     read -r -a keys <<< "$uid_output"
   else
     [[ $secret -ne 1 ]] && uid_output="$(list_uids)"
     if [[ $? -ne 1 ]]; then
-      [[ $encrypt -eq 1 ]] && keys+=("-r $uid_output") || keys+=("$uid_output")
-      #echo "${keys[@]}" # debug
+      keys+=( "$uid_output" )
       choose_uids
+      return
     fi
   fi
-
+echo "${keys[@]}"
+  if [[ $encrypt -eq 1 ]]; then
+    keys=( "${keys[@]/#/'-r ='}" )
+  else
+    keys=( "${keys[@]/#/=}" )
+  fi
+  echo "${keys[@]}"
   if [[ $secret -eq 1 ]] && [[ -z $sign_key ]]; then
-    sign_key="$(list_uids)"
+    sign_key="=$(list_uids)"
   fi
 }
 
@@ -189,9 +195,8 @@ edit_message () {
 
 encrypt_message () {
   if [[ ${#keys[@]} -ne 0 ]]; then
-    echo "${keys[@]}" # debug
     echo "$message" | gpg --armor --encrypt --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
-    zenity $zenity_size --text-info --title="Encrypted for: $(echo -e ${keys[@]//-r})" 2>/dev/null || \
+    zenity $zenity_size --text-info --title="Encrypted for: $(echo -e ${keys[@]//-r =})" 2>/dev/null || \
     (unset keys && encrypt_message)
   else
     if [[ -z "$message" ]]; then
@@ -241,7 +246,7 @@ sign_message () {
       #echo "R: ${keys[@]}" # debug
       #echo "S: $sign_key" # debug
       echo -e "$message" | gpg -es --armor --no-tty --local-user "$sign_key" --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
-      zenity $zenity_size --title="Signed by $(echo -e $sign_key) & encrypted for: $(echo -e ${keys[@]//-r})" --text-info 2>/dev/null
+      zenity $zenity_size --title="Signed by $(echo -e ${sign_key/#=/}) & encrypted for: $(echo -e ${keys[@]//-r =})" --text-info 2>/dev/null
     else
       if [[ $old_zenity -eq 1 ]]; then
         echo -e "$message" | gpg --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
@@ -270,7 +275,7 @@ sign_message () {
 encrypt_file () {
   if [[ ${#keys[@]} -ne 0 ]]; then
     gpg --output "${file_path}.gpg" "${keys[@]}" --always-trust --encrypt "$file_path" && \
-    zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg) for:$(echo -e \\n${keys[@]//-r})" || \
+    zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg) for:$(echo -e \\n${keys[@]//-r =})" || \
     zenity_die "Error :( Check console output"
   else
     file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
@@ -320,11 +325,10 @@ decrypt_file () {
 
 addkey () {
   local IFS='|' && \
-  new_form="$(zenity --forms --title="GnuPG Wrapper" --text="Key generation" --add-entry="Nickname" --add-entry="Comment" --add-entry="Email" --add-password="Passphrase" --add-password="Repeat passphrase" 2>/dev/null)"
+  new_form="$(zenity --forms --title="GnuPG Wrapper" --text="Key generation" --add-entry="Nickname" --add-entry="Comment" --add-entry="Email" 2>/dev/null)"
   [[ $? -eq 1 ]] && exit 1
   read -r -a newkey <<< "$new_form"
-  [[ -z ${newkey[3]} || -z ${newkey[4]} || -z ${newkey[0]} ]] && zenity_die "Nickname and passphrase are required"
-  [[ ${newkey[3]} -ne ${newkey[4]} ]] && zenity_die "Passphrases do not match"
+  [[ -z ${newkey[0]} ]] && zenity_die "Nickname required"
   [[ -n ${newkey[1]} ]] && gen_comment="Name-Comment: ${newkey[1]}"
   [[ -n ${newkey[2]} ]] && gen_email="Name-Email: ${newkey[2]}"
   genkey_output=$(genkey)
@@ -342,8 +346,6 @@ Name-Real: ${newkey[0]}
 $gen_comment
 $gen_email
 Expire-Date: 0
-Passphrase: ${newkey[3]}
-#%dry-run
 %commit
 EOF
 }
