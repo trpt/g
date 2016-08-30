@@ -250,11 +250,11 @@ sign_message () {
     else
       if [[ $old_zenity -eq 1 ]]; then
         echo -e "$message" | gpg --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
-        zenity $zenity_size --title="Signed by $(echo -e $sign_key)" --text-info --filename="$tmpfile" 2>/dev/null
+        zenity $zenity_size --title="Signed by $(echo -e ${sign_key/#=/})" --text-info --filename="$tmpfile" 2>/dev/null
         rm "$tmpfile"
       else
         echo -e "$message" | gpg --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null | \
-        zenity $zenity_size --title="Signed by $(echo -e $sign_key)" --text-info 2>/dev/null
+        zenity $zenity_size --title="Signed by $(echo -e ${sign_key/#=/})" --text-info 2>/dev/null
       fi
     fi
 
@@ -325,10 +325,12 @@ decrypt_file () {
 
 addkey () {
   local IFS='|' && \
-  new_form="$(zenity --forms --title="GnuPG Wrapper" --text="Key generation" --add-entry="Nickname" --add-entry="Comment" --add-entry="Email" 2>/dev/null)"
+  new_form="$(zenity --forms --title="GnuPG Wrapper" --text="Key generation" --add-entry="Nickname" --add-entry="Comment" --add-entry="Email" --add-password="Passphrase" --add-password="Repeat passphrase" 2>/dev/null)"
   [[ $? -eq 1 ]] && exit 1
   read -r -a newkey <<< "$new_form"
   [[ -z ${newkey[0]} ]] && zenity_die "Nickname required"
+  [[ ${newkey[3]} -ne ${newkey[4]} ]] && zenity_die "Passphrases do not match"
+  [[ -n ${newkey[3]} ]] && gen_pass="Passphrase: ${newkey[3]}"
   [[ -n ${newkey[1]} ]] && gen_comment="Name-Comment: ${newkey[1]}"
   [[ -n ${newkey[2]} ]] && gen_email="Name-Email: ${newkey[2]}"
   genkey_output=$(genkey)
@@ -337,7 +339,6 @@ addkey () {
 
 genkey () {
   gpg --batch --gen-key --no-tty --logger-fd 1 <<EOF
-%echo OpenPGP key generation:
 Key-Type: RSA
 Key-Length: 4096
 Subkey-Type: RSA
@@ -346,6 +347,8 @@ Name-Real: ${newkey[0]}
 $gen_comment
 $gen_email
 Expire-Date: 0
+$gen_pass
+%no-protection
 %commit
 EOF
 }
