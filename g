@@ -1,7 +1,8 @@
+
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 1.4
+# v. 1.5
 # © GPLv3
 
 # Set if necessary
@@ -14,12 +15,13 @@
 
 # Dialog options
 zenity_size="--height=600 --width=800 "
-zenity_ask_size="--height=510 --width=280 "
+zenity_ask_size="--height=520 "
+zenity_ask_trust_size="--height=270 "
 zenity_key_size_h="--height=500"
 zenity_key_size_w="--width=400"
 rofi_prompt="Search: "
 
-# GPG cipher for symmetric encription
+# GPG cipher for symmetric encryption
 gpg_sym_cipher='--cipher-algo AES256'
 
 # Debug
@@ -47,6 +49,7 @@ usage: $PROGRAM [action]
     df - decrypt/verify file
     im - import key
     ex - export key
+    t - change key's trust
     gen - generate new key
     del - delete keys
 
@@ -123,6 +126,7 @@ zenity_cmd () {
   [[ $secret -eq 1 ]] && zen_list_param='--radiolist' zen_sep='|' title='--title=Secret keys' text='--text=Choose signing key'
   [[ $export -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Export keys' text='--text=Check keys to export'
   [[ $delete -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Delete key(s)' text='--text=Choose key(s) to delete'
+  [[ $trust -eq 1 ]] && zen_list_param='--checklist' zen_sep='|' title='--title=Public keys' text='--text=Check keys to change trust'
   zenity "$zenity_key_size_h" "$zenity_key_size_w" "$text" "$title" "$zen_list_param" --list --hide-header --separator="$zen_sep" --column="Check" --column="Key"
 }
 
@@ -148,7 +152,7 @@ export_key () {
   local oklabel='Export'
   choose_uids
   if [[ ${#keys[@]} -ne 0 ]]; then
-    gpg --export --armor "${keys[@]}" | zenity $zenity_size --text-info --title="$zenity_title" --ok-label="$oklabel"
+    gpg --export --armor "${keys[@]}" | zenity $zenity_size --text-info --title="$zenity_title"
   else
     exit 1
   fi
@@ -170,13 +174,13 @@ choose_uids () {
       return
     fi
   fi
-echo "${keys[@]}"
+
   if [[ $encrypt -eq 1 ]]; then
     keys=( "${keys[@]/#/'-r ='}" )
   else
     keys=( "${keys[@]/#/=}" )
   fi
-  echo "${keys[@]}"
+
   if [[ $secret -eq 1 ]] && [[ -z $sign_key ]]; then
     sign_key="=$(list_uids)"
   fi
@@ -196,7 +200,7 @@ edit_message () {
 encrypt_message () {
   if [[ ${#keys[@]} -ne 0 ]]; then
     echo "$message" | gpg --armor --encrypt --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
-    zenity $zenity_size --text-info --title="Encrypted for: $(echo -e ${keys[@]//-r =})" 2>/dev/null || \
+    zenity $zenity_size --text-info --title="Encrypted for: ${keys[*]//-r =}" 2>/dev/null || \
     (unset keys && encrypt_message)
   else
     if [[ -z "$message" ]]; then
@@ -246,7 +250,7 @@ sign_message () {
       #echo "R: ${keys[@]}" # debug
       #echo "S: $sign_key" # debug
       echo -e "$message" | gpg -es --armor --no-tty --local-user "$sign_key" --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
-      zenity $zenity_size --title="Signed by $(echo -e ${sign_key/#=/}) & encrypted for: $(echo -e ${keys[@]//-r =})" --text-info 2>/dev/null
+      zenity $zenity_size --title="Signed by ${sign_key/#=/} & encrypted for: ${keys[*]//-r =}" --text-info 2>/dev/null
     else
       if [[ $old_zenity -eq 1 ]]; then
         echo -e "$message" | gpg --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
@@ -274,9 +278,12 @@ sign_message () {
 
 encrypt_file () {
   if [[ ${#keys[@]} -ne 0 ]]; then
-    gpg --output "${file_path}.gpg" "${keys[@]}" --always-trust --encrypt "$file_path" && \
-    zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg) for:$(echo -e \\n${keys[@]//-r =})" || \
-    zenity_die "Error :( Check console output"
+    encrypt_file_output=$(gpg --logger-fd 1 --output "${file_path}.gpg" "${keys[@]}" --always-trust --encrypt "$file_path" 2>&1)
+    if [[ $? -eq 0 ]]; then
+      zenity --info --no-markup --title="$zenity_title" --text="File encrypted as ${file_path}.gpg for:$(echo -e \\n${keys[@]//-r =})"
+    else
+      zenity_die "$encrypt_file_output"
+    fi
   else
     file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
     if [[ -f "${file_path}.gpg" ]]; then
@@ -296,9 +303,12 @@ encrypt_file_sym () {
     exit 1
   fi
   [[ $? -eq 1 ]] && exit 1
-  gpg --output "${file_path}.gpg" $gpg_sym_cipher --symmetric "$file_path" && \
-  zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg)" || \
-  zenity_die "Error :( Check console output"
+  encrypt_file_sym_output=$(gpg --logger-fd 1 --output "${file_path}.gpg" $gpg_sym_cipher --symmetric "$file_path" 2>&1)
+  if [[ $? -eq 0 ]]; then
+    zenity --info --no-markup --title="$zenity_title" --text="File encrypted as $(echo -e ${file_path}.gpg)"
+  else
+    zenity_die "$encrypt_file_sym_output"
+  fi
 }
 
 decrypt_file () {
@@ -317,9 +327,12 @@ decrypt_file () {
       zenity --info --title="$zenity_title" --no-markup --text="File $output exists, delete or remove it first"
       exit 1
     fi
-    gpg --no-tty --output "$output" --decrypt "$file_path" && \
-    zenity --info --no-markup --title="$zenity_title" --text="File decrypted as $output" ||
-    zenity_die "Error :( Check console output"
+    decrypt_file_output=$(gpg --no-tty --logger-fd 1 --output "$output" --decrypt "$file_path" 2>&1)
+    if [[ $? -eq 0 ]]; then
+      zenity --info --no-markup --title="$zenity_title" --text="File decrypted as $output"
+    else
+      zenity_die "$decrypt_file_output"
+    fi
   fi
 }
 
@@ -338,7 +351,7 @@ addkey () {
 }
 
 genkey () {
-  gpg --batch --gen-key --no-tty --logger-fd 1 <<EOF
+  gpg --batch --gen-key --no-tty --logger-fd 1 2>&1 <<EOF
 Key-Type: RSA
 Key-Length: 4096
 Subkey-Type: RSA
@@ -356,15 +369,60 @@ EOF
 delkey () {
   choose_uids
   if [[ ${#keys[@]} -ne 0 ]]; then
-    delkey_output=$(gpg -v --batch --yes --no-tty --logger-fd 1 --delete-keys "${keys[@]}")
-    [[ $? -eq 0 ]] && \
-    zenity --info --no-markup --title="Key deletion" --text="Key(s) deleted" || \
-    zenity_die "${delkey_output//gpg: }"
+    delkey_output=$(gpg -v --batch --yes --no-tty --logger-fd 1 --delete-keys "${keys[@]}" 2>&1)
+    if [[ $? -eq 0 ]]; then
+      printf -v msg "Key(s) deleted: ${keys[*]/#=/}"
+      zenity --info --no-markup --title="Key deletion" --text="$msg"
+    else
+      zenity_die "${delkey_output//gpg: }"
+    fi
   fi
 }
 
+trust_key () {
+  choose_uids
+  if [[ ${#keys[@]} -ne 0 ]]; then
+    trust_ask
+    [[ -z $trust_id ]] && exit
+    for ((i=0; i < "${#keys[@]}"; i++)); do
+      trust_output=$(printf "trust\n${trust_id}\ny\n" | gpg --no-tty --logger-fd 1 --command-fd 0 --edit-key "${keys[$i]}" 2>&1)
+    done
+
+    if [[ $? -eq 0 ]]; then
+      zenity --info --no-markup --title="Key trust" --text="Trust changed to $ask_trust: ${keys[*]/#=/}"
+    else
+      zenity_die "${trust_output//gpg: }"
+    fi
+  fi
+}
+
+trust_ask () {
+  ask_trust=$(zenity $zenity_ask_trust_size --list  --hide-header --text="Change trust to:" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Unknown" FALSE "No trust" FALSE "Marginal" FALSE "Full" FALSE "Ultimate")
+  case $ask_trust in
+    "Unknown")
+      trust_id=1
+    ;;
+
+    "No trust")
+      trust_id=2
+    ;;
+
+    "Marginal")
+      trust_id=3
+    ;;
+
+    "Full")
+      trust_id=4
+    ;;
+
+    "Ultimate")
+      trust_id=5
+    ;;
+  esac
+}
+
 if [[ -z $1 ]]; then
-  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Encrypt sym." FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Encrypt file sym." FALSE "Decrypt / Verify file" FALSE "Import key" FALSE "Export key" FALSE "Generate key" FALSE "Delete key")
+  ask=$(zenity $zenity_ask_size --list  --hide-header --text="What to do?" --title "GnuPG wrapper" --radiolist  --column "Choose" --column "Action" TRUE "Encrypt" FALSE "Encrypt sym." FALSE "Decrypt / Verify" FALSE "Sign" FALSE "Sign & Encrypt" FALSE "Encrypt file" FALSE "Encrypt file sym." FALSE "Decrypt / Verify file" FALSE "Import key" FALSE "Export key" FALSE "Trust key"  FALSE "Generate key" FALSE "Delete key")
   case $ask in
     "Encrypt")
       set e
@@ -404,6 +462,10 @@ if [[ -z $1 ]]; then
 
     "Export key")
       set export
+    ;;
+
+    "Trust key")
+      set trust
     ;;
 
     "Generate key")
@@ -472,6 +534,11 @@ case $1 in
     [[ $1 == "--invalid" || $1 == "-i" || $1 == "i" ]] && invalid=1
     zenity_title='Export key'
     export_key
+  ;;
+
+  t|trust)
+    trust=1
+    trust_key
   ;;
 
   g|gen)
