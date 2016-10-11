@@ -29,7 +29,7 @@ Expired and revoked uids are ignored. Use `--invalid` parameter with `del` or `e
 
 # Dependencies
 `GnuPG2`
-`bash`  
+`bash` >= v.4  
 `zenity`  
 optional `rofi` or `dmenu`  
 
