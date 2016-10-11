@@ -28,7 +28,7 @@ Using 4096 RSA with no expire date for key generation.
 Expired and revoked uids are ignored. Use `--invalid` parameter with `del` or `ex` action to list those.  
 
 # Dependencies
-`GnuPG2`
+`GnuPG2`  
 `bash` >= v.4  
 `zenity`  
 optional `rofi` or `dmenu`  
