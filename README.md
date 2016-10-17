@@ -15,6 +15,7 @@ where `action` is:
 `se` - sign & encrypt message  
 `ef` - encrypt file  
 `efc` - encrypt file symmetrically  
+`sf` - sign file  
 `df` - decrypt/verify file  
 `im` - import key  
 `ex` - export key  
@@ -33,4 +34,4 @@ Expired and revoked uids are ignored. Use `--invalid` parameter with `del` or `e
 `zenity`  
 optional `rofi` or `dmenu`  
 
-Tested in Arch Linux and Tails
+Tested in Arch Linux, Tails and other distros
