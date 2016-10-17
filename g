@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 2.1
+# v. 2.11
 # © GPLv3
 
 # Set if necessary
@@ -349,9 +349,9 @@ sign_file() {
   choose_uids
   [[ -z $sign_key || $sign_key = '=' ]] && exit 0
   if [[ "$detached_fsig" = 'yes' ]]; then
-    sign_file_output=$("$GPGBINARY" --logger-fd 1 --local-user "$sign_key" --output "$signed_file" --detach-sig "$file_path" 2>&1 | zen_progress)
+    sign_file_output=$("$GPGBINARY" --logger-fd 1 --no-tty --local-user "$sign_key" --output "$signed_file" --detach-sig "$file_path" 2>&1 | zen_progress)
   else
-    sign_file_output=$("$GPGBINARY" --logger-fd 1 --local-user "$sign_key" --output "$signed_file" --sign "$file_path" 2>&1 | zen_progress)
+    sign_file_output=$("$GPGBINARY" --logger-fd 1 --no-tty --local-user "$sign_key" --output "$signed_file" --sign "$file_path" 2>&1 | zen_progress)
   fi
   if [[ $? -eq 0 ]]; then
     zenity --info --no-markup --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text="$(translate file_sig_created) $(echo -e $signed_file)"
