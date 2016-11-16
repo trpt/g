@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 2.11
+# v. 2.3
 # © GPLv3
 
 # Set if necessary
@@ -84,9 +84,9 @@ EOF
 translate() {
   [[ -z $lang ]] && lang=${LANG:0:2}
 
-  declare -A tr_en=([title]='GnuPG wrapper' [zenity_req]='zenity is needed to run this script' [gpg_running]='GPG is running, please wait ...' [gpg_req]='GPG binary is needed to run this script!' [rofi_key]='<b>Choose key(s), Esc to finish</b>' [rofi_seckey]='<b>Choose secret key to sign</b>' [zcmd_pubkeys]='--title=Public keys' [zcmd_pubkeys_txt]='--text=Check encryption keys' [zcmd_seckeys]='--title=Secret keys' [zcmd_seckeys_txt]='--text=Choose signing key' [zcmd_exkeys]='--title=Export keys' [zcmd_exkeys_txt]='--text=Check keys to export' [zcmd_delkeys]='--title=Delete key(s)' [zcmd_delkeys_txt]='--text=Choose key(s) to delete' [zcmd_trust_txt]='--text=Check keys to change trust' [check]='Check' [key]='Key' [import]='Import' [import_result]='Import result' [export]='Export' [encrypt]='Encrypt' [decrypt]='Decrypt' [encrypted_for]='Encrypted for:' [encrypted]='Ecnrypted' [decrypted_text]='Decrypted text' [sig_check]='Signature check' [signed_by]='Signed by' [file_enc_as]='File encrypted as' [for]='for' [file_sig_created]='Signed file:' [file]='File' [file_exist_warn]='существует, сначала удалите или переместите его' [file_dec_as]='File decrypted as' [key_gen]='Key generation' [nick]='Nickname' [comment]='Comment' [email]="Email" [pass]='Passphrase' [re_pass]='Repeat passphrase' [nick_req]='Nickname required' [pass_fail]='Passphrases do not match' [key_del]='Key(s) deleted:' [key_del_txt]='Key deletion' [key_trust]='Key trust' [trust_key_ch]='Trust changed to' [ch_trust_to]='Change trust to:' [unknown]='Unknown' [no_trust]='No trust' [marginal]='Marginal' [full]='Full' [ultimate]='Ultimate' [what_todo]='What to do?' [encrypt_sym]='Encrypt with password' [dec_verify]='Decrypt or verify' [sign]='Sign' [sign_encrypt]='Sign & encrypt' [enc_file]='Ecnrypt file' [enc_file_sym]='Encrypt file with password' [sign_file]='Sign file' [dec_verify_file]='Decrypt or verify file' [import_key]='Import key' [export_key]='Export key(s)' [trust_key]='Trust control' [gen_key]='Generate key' [del_key]='Delete key(s)' [type_msg]='Go ahead and type...' [paste_msg]='Paste encrypted message here' [sign_msg]='Sign message' [sign_enc_msg]='Sign & encrypt message' [gpg_output]='GPG command result')
+  declare -A tr_en=([title]='GnuPG wrapper' [zenity_req]='zenity is needed to run this script' [gpg_running]='GPG is running, please wait...' [gpg_req]='GPG binary is needed to run this script!' [rofi_key]='<b>Choose key(s), Esc to finish</b>' [rofi_seckey]='<b>Choose secret key to sign</b>' [zcmd_pubkeys]='--title=Public keys' [zcmd_pubkeys_txt]='--text=Check encryption keys' [zcmd_seckeys]='--title=Secret keys' [zcmd_seckeys_txt]='--text=Choose signing key' [zcmd_exkeys]='--title=Export keys' [zcmd_exkeys_txt]='--text=Check keys to export' [zcmd_delkeys]='--title=Delete key(s)' [zcmd_delkeys_txt]='--text=Choose key(s) to delete' [zcmd_trust_txt]='--text=Check keys to change trust' [check]='Check' [key]='Key' [import]='Import' [import_result]='Import result' [export]='Export' [encrypt]='Encrypt' [decrypt]='Decrypt' [encrypted_for]='Encrypted for:' [encrypted]='Ecnrypted' [decrypted_text]='Decrypted text' [sig_check]='Signature check' [signed_by]='Signed by' [file_enc_as]='File encrypted as' [for]='for' [file_sig_created]='Signed file:' [file]='File' [file_exist_warn]='существует, сначала удалите или переместите его' [file_dec_as]='File decrypted as' [key_gen]='Key generation' [nick]='Nickname' [comment]='Comment' [email]="Email" [pass]='Passphrase' [re_pass]='Repeat passphrase' [nick_req]='Nickname required' [pass_fail]='Passphrases do not match' [key_del]='Key(s) deleted:' [key_del_txt]='Key deletion' [key_trust]='Key trust' [trust_key_ch]='Trust changed to' [ch_trust_to]='Change trust to:' [unknown]='Unknown' [no_trust]='No trust' [marginal]='Marginal' [full]='Full' [ultimate]='Ultimate' [what_todo]='What to do?' [encrypt_sym]='Encrypt with password' [dec_verify]='Decrypt or verify' [sign]='Sign' [sign_encrypt]='Sign & encrypt' [enc_file]='Ecnrypt file' [enc_file_sym]='Encrypt file with password' [sign_file]='Sign file' [dec_verify_file]='Decrypt or verify file' [import_key]='Import key' [export_key]='Export key(s)' [trust_key]='Trust control' [gen_key]='Generate key' [del_key]='Delete key(s)' [type_msg]='Go ahead and type...' [paste_msg]='Paste encrypted message here' [sign_msg]='Sign message' [sign_enc_msg]='Sign & encrypt message' [gpg_output]='GPG command result')
 
-  declare -A tr_ru=([title]='Оболочка GnuPG' [zenity_req]='Для запуска необходима программа zenity' [gpg_running]='GPG работает, ждите ...' [gpg_req]='Для запука необходима программа GPG!' [rofi_key]='<b>Выберите ключ(и), Esc для завершения</b>' [rofi_seckey]='<b>Выберите секретный ключ для подписи</b>' [zcmd_pubkeys]='--title=Открытые ключи' [zcmd_pubkeys_txt]='--text=Выберите ключи для шифрования' [zcmd_seckeys]='--title=Секретные ключи' [zcmd_seckeys_txt]='--text=Выберите ключ для подписи' [zcmd_exkeys]='--title=Экспорт ключей' [zcmd_exkeys_txt]='--text=Выберите ключи для экспорта' [zcmd_delkeys]='--title=Удалить ключ(и)' [zcmd_delkeys_txt]='--text=Выберите ключ(и) для удаления' [zcmd_trust_txt]='--text=Выберите ключ для смены доверия' [check]='Выбор' [key]='Ключ' [import]='Импорт' [import_result]='Результат импорта' [export]='Экспорт' [encrypt]='Зашифровать' [decrypt]='Расшифровать' [encrypted_for]='Зашифровано для:' [encrypted]='Зашифровано' [decrypted_text]='Расшифрованный текст' [sig_check]='Проверка подписи' [signed_by]='Подписано' [file_enc_as]='Файл зашифрован как' [for]='для' [file_sig_created]='Файл подписан:' [file]='Файл' [file_exist_warn]='существует, сначала удалите или переместите его' [file_dec_as]='Файл расшифрован как' [key_gen]='Генерация ключа' [nick]='Ник' [comment]='Комментарий' [email]="Почта" [pass]='Пароль' [re_pass]='Повтор пароля' [nick_req]='Ник обязателен' [pass_fail]='Пароли не совпадают' [key_del]='Ключи удалены:' [key_del_txt]='Удаление ключей' [key_trust]='Доверие ключа' [trust_key_ch]='Доверие изменено на' [ch_trust_to]='Изменить доверие на:' [unknown]='Неизвестное' [no_trust]='Нет доверия' [marginal]='Ограниченное' [full]='Полное' [ultimate]='Абсолютное' [what_todo]='Что нужно сделать?' [encrypt_sym]='Зашифровать паролем' [dec_verify]='Расшифровать или проверить' [sign]='Подписать' [sign_encrypt]='Подписать и зашифровать' [enc_file]='Зашифровать файл' [enc_file_sym]='Зашифровать файл паролем' [sign_file]='Подписать файл' [dec_verify_file]='Расшифровать или проверить файл' [import_key]='Импортировать ключ(и)' [export_key]='Экспортировать ключ(и)' [trust_key]='Управление доверием' [gen_key]='Генерировать ключ' [del_key]='Удалить ключ(и)' [type_msg]='Напишите сообщение...' [paste_msg]='Вставьте зашифрованное сообщение' [sign_msg]='Подписать сообщение' [sign_enc_msg]='Подписать и зашифровать сообщение' [gpg_output]='Результат выполнения команды GPG')
+  declare -A tr_ru=([title]='Оболочка GnuPG' [zenity_req]='Для запуска необходима программа zenity' [gpg_running]='GPG работает, ждите...' [gpg_req]='Для запука необходима программа GPG!' [rofi_key]='<b>Выберите ключ(и), Esc для завершения</b>' [rofi_seckey]='<b>Выберите секретный ключ для подписи</b>' [zcmd_pubkeys]='--title=Открытые ключи' [zcmd_pubkeys_txt]='--text=Выберите ключи для шифрования' [zcmd_seckeys]='--title=Секретные ключи' [zcmd_seckeys_txt]='--text=Выберите ключ для подписи' [zcmd_exkeys]='--title=Экспорт ключей' [zcmd_exkeys_txt]='--text=Выберите ключи для экспорта' [zcmd_delkeys]='--title=Удалить ключ(и)' [zcmd_delkeys_txt]='--text=Выберите ключ(и) для удаления' [zcmd_trust_txt]='--text=Выберите ключ для смены доверия' [check]='Выбор' [key]='Ключ' [import]='Импорт' [import_result]='Результат импорта' [export]='Экспорт' [encrypt]='Зашифровать' [decrypt]='Расшифровать' [encrypted_for]='Зашифровано для:' [encrypted]='Зашифровано' [decrypted_text]='Расшифрованный текст' [sig_check]='Проверка подписи' [signed_by]='Подписано' [file_enc_as]='Файл зашифрован как' [for]='для' [file_sig_created]='Файл подписан:' [file]='Файл' [file_exist_warn]='существует, сначала удалите или переместите его' [file_dec_as]='Файл расшифрован как' [key_gen]='Генерация ключа' [nick]='Ник' [comment]='Комментарий' [email]="Почта" [pass]='Пароль' [re_pass]='Повтор пароля' [nick_req]='Ник обязателен' [pass_fail]='Пароли не совпадают' [key_del]='Ключи удалены:' [key_del_txt]='Удаление ключей' [key_trust]='Доверие ключа' [trust_key_ch]='Доверие изменено на' [ch_trust_to]='Изменить доверие на:' [unknown]='Неизвестное' [no_trust]='Нет доверия' [marginal]='Ограниченное' [full]='Полное' [ultimate]='Абсолютное' [what_todo]='Что нужно сделать?' [encrypt_sym]='Зашифровать паролем' [dec_verify]='Расшифровать или проверить' [sign]='Подписать' [sign_encrypt]='Подписать и зашифровать' [enc_file]='Зашифровать файл' [enc_file_sym]='Зашифровать файл паролем' [sign_file]='Подписать файл' [dec_verify_file]='Расшифровать или проверить файл' [import_key]='Импортировать ключ(и)' [export_key]='Экспортировать ключ(и)' [trust_key]='Управление доверием' [gen_key]='Генерировать ключ' [del_key]='Удалить ключ(и)' [type_msg]='Напишите сообщение...' [paste_msg]='Вставьте зашифрованное сообщение' [sign_msg]='Подписать сообщение' [sign_enc_msg]='Подписать и зашифровать сообщение' [gpg_output]='Результат выполнения команды GPG')
 
   case $lang in
   ru)
@@ -130,7 +130,7 @@ die() {
 }
 
 zenity_die () {
-  zenity --error --no-markup --text "$@"
+  zenity --error --no-markup --no-wrap --text "$@"
 	exit 1
 }
 
@@ -173,8 +173,10 @@ list_uids () {
 
 import_key () {
   local oklabel="$(translate import)"
-  local result=$(zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" | "$GPGBINARY" --no-tty --import -v --logger-fd 1)
-  zenity --info --no-markup --title="$(translate import_result)" --text="${result//gpg: }"
+  local zenity_import=$(zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel")
+  [[ -n $zenity_import ]] && \
+    { local result=$(echo "$zenity_import" | "$GPGBINARY" --no-tty --import -v --logger-fd 1)
+    zenity --info --no-markup --no-wrap --title="$(translate import_result)" --text="${result//gpg: }"; }
 }
 
 export_key () {
@@ -267,7 +269,7 @@ decrypt_message () {
   fi & \
   if [[ $message == *'-----BEGIN PGP SIGNED MESSAGE-----'* ]]; then
     sig_check=$(echo -e "$message" | "$GPGBINARY" --no-tty -v --verify --logger-fd 1 2>/dev/null)
-    zenity --info --no-markup --title="$(translate sig_check)" --text="${sig_check//gpg: }"
+    zenity --info --no-markup --no-wrap --title="$(translate sig_check)" --text="${sig_check//gpg: }"
   fi
 }
 
@@ -307,14 +309,14 @@ encrypt_file () {
   if [[ ${#keys[@]} -ne 0 ]]; then
     encrypt_file_output=$("$GPGBINARY" --logger-fd 1 --output "${file_path}.gpg" "${keys[@]}" --always-trust --encrypt "$file_path" 2>&1 | zen_progress)
     if [[ $? -eq 0 ]]; then
-      zenity --info --no-markup --title="$zenity_title" --text="$(translate file_enc_as) ${file_path}.gpg $(translate for):$(echo -e \\n${keys[@]//-r =})"
+      zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) ${file_path}.gpg $(translate for):$(echo -e \\n${keys[@]//-r =})"
     else
       zenity_die "$encrypt_file_output"
     fi
   else
     file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
     if [[ -f "${file_path}.gpg" ]]; then
-      zenity --info --title="$zenity_title" --text="$(translate file) ${file_path}.gpg $(translate file_exists_warn)"
+      zenity --info --no-wrap --title="$zenity_title" --text="$(translate file) ${file_path}.gpg $(translate file_exists_warn)"
       exit 1
     fi
     [[ $? -eq 1 ]] && exit 1
@@ -326,13 +328,13 @@ encrypt_file () {
 encrypt_file_sym () {
   file_path="$(zenity --file-selection --title=$zenity_title)" || exit 1
   if [[ -f "${file_path}.gpg" ]]; then
-    zenity --info --title="$zenity_title" --text="$(translate file) ${file_path}.gpg $(translate file_exists_warn)"
+    zenity --info --no-wrap --title="$zenity_title" --text="$(translate file) ${file_path}.gpg $(translate file_exists_warn)"
     exit 1
   fi
   [[ $? -eq 1 ]] && exit 1
   encrypt_file_sym_output=$("$GPGBINARY" --logger-fd 1 --output "${file_path}.gpg" $gpg_sym_cipher --symmetric "$file_path" 2>&1 | zen_progress)
   if [[ $? -eq 0 ]]; then
-    zenity --info --no-markup --title="$zenity_title" --text="$(translate file_enc_as) $(echo -e ${file_path}.gpg)"
+    zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) $(echo -e ${file_path}.gpg)"
   else
     zenity_die "$encrypt_file_sym_output"
   fi
@@ -354,7 +356,7 @@ sign_file() {
     sign_file_output=$("$GPGBINARY" --logger-fd 1 --no-tty --local-user "$sign_key" --output "$signed_file" --sign "$file_path" 2>&1 | zen_progress)
   fi
   if [[ $? -eq 0 ]]; then
-    zenity --info --no-markup --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text="$(translate file_sig_created) $(echo -e $signed_file)"
+    zenity --info --no-markup --no-wrap --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text="$(translate file_sig_created) $(echo -e $signed_file)"
   else
     zenity_die "$sign_file_output"
   fi
@@ -369,16 +371,16 @@ decrypt_file () {
   [[ "${filename##*.}" == 'sig' || "${filename##*.}" == 'asc' ]] && file_verify=1
   if [[ $file_verify -eq 1 ]]; then
     sig_check=$("$GPGBINARY" -v --logger-fd 1 --no-tty --verify "$file_path" 2>/dev/null | zen_progress)
-    zenity --info --no-markup --title="$(translate sig_check)" --text="${sig_check//gpg: }"
+    zenity --info --no-markup --no-wrap --title="$(translate sig_check)" --text="${sig_check//gpg: }"
   else
     [[ "${filename##*.}" == 'gpg' || "${filename##*.}" == 'pgp' ]] && output="${dirname}/${filename%.*}" || output="${file_path}.output"
     if [[ -f "$output" ]]; then
-      zenity --info --title="$zenity_title" --no-markup --text="$(translate file) $output $(translate file_exists_warn)"
+      zenity --info --title="$zenity_title" --no-markup --no-wrap --text="$(translate file) $output $(translate file_exists_warn)"
       exit 1
     fi
     decrypt_file_output=$("$GPGBINARY" --no-tty --logger-fd 1 --output "$output" --decrypt "$file_path" 2>&1 | zen_progress)
     if [[ $? -eq 0 ]]; then
-      zenity --info --no-markup --title="$zenity_title" --text="$(translate file_dec_as) $output"
+      zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_dec_as) $output"
     else
       zenity_die "$decrypt_file_output"
     fi
@@ -396,7 +398,7 @@ addkey () {
   [[ -n ${newkey[1]} ]] && gen_comment="Name-Comment: ${newkey[1]}"
   [[ -n ${newkey[2]} ]] && gen_email="Name-Email: ${newkey[2]}"
   genkey_output=$(genkey | zen_progress)
-  zenity --info --no-markup --title="$(translate key_gen)" --text="${genkey_output//gpg: }"
+  zenity --info --no-markup --no-wrap --title="$(translate key_gen)" --text="${genkey_output//gpg: }"
 }
 
 genkey () {
@@ -421,7 +423,7 @@ delkey () {
     delkey_output=$("$GPGBINARY" -v --batch --yes --no-tty --logger-fd 1 --delete-keys "${keys[@]}" 2>&1)
     if [[ $? -eq 0 ]]; then
       printf -v msg "$(translate key_del) ${keys[*]/#=/}"
-      zenity --info --no-markup --title="$(translate key_del_txt)" --text="$msg"
+      zenity --info --no-markup --no-wrap --title="$(translate key_del_txt)" --text="$msg"
     else
       zenity_die "${delkey_output//gpg: }"
     fi
@@ -438,7 +440,7 @@ trust_key () {
     done
 
     if [[ $? -eq 0 ]]; then
-      zenity --info --no-markup --title="$(translate key_trust)" --text="$(translate trust_key_ch) $ask_trust: ${keys[*]/#=/}"
+      zenity --info --no-markup --no-wrap --title="$(translate key_trust)" --text="$(translate trust_key_ch) $ask_trust: ${keys[*]/#=/}"
     else
       zenity_die "${trust_output//gpg: }"
     fi
@@ -446,7 +448,7 @@ trust_key () {
 }
 
 trust_ask () {
-  ask_trust=$(zenity $zenity_ask_trust_size --list  --hide-header --text="$(translate ch_trust_to)" --title "$(translate title)" --radiolist  --column "$(translate choose)" --column "$(translate action)" TRUE "$(translate unknown)" FALSE "$(translate no_trust)" FALSE "$(translate marginal)" FALSE "$(translate full)" FALSE "$(translate ultimate)")
+  ask_trust=$(zenity $zenity_ask_trust_size --list --hide-header --text="$(translate ch_trust_to)" --title "$(translate title)" --radiolist  --column "$(translate choose)" --column "$(translate action)" TRUE "$(translate unknown)" FALSE "$(translate no_trust)" FALSE "$(translate marginal)" FALSE "$(translate full)" FALSE "$(translate ultimate)")
   case $ask_trust in
     "$(translate unknown)")
       trust_id=1
