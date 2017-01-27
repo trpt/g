@@ -1,8 +1,11 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 2.3.1
+# v. 2.4
 # © GPLv3
+
+## General options
+## You can override these with environment variables with 'gpgw_' prefix, like 'gpgw_GNUPGHOME', 'gpgw_menu' etc.
 
 # Set if necessary
 #export GNUPGHOME="$HOME/.gnupg"
@@ -20,6 +23,9 @@ zenity_ask_trust_size="--height=280 "
 zenity_key_size_h="--height=500"
 zenity_key_size_w="--width=400"
 rofi_prompt="Search: "
+rofi_font='monospace 16'
+rofi_lines='20'
+rofi_width='-60'
 
 # GPG cipher for symmetric encryption
 gpg_sym_cipher='--cipher-algo AES256'
@@ -39,6 +45,9 @@ detached_fsig='yes'
 # Code       #
 ##############
 PROGRAM="${0##*/}"
+
+# Check environment for custom options
+[[ -n $gpgw_GNUPGHOME ]] && GNUPGHOME="$gpgw_GNUPGHOME" ; [[ -n $gpgw_GPGBINARY ]] && GPGBINARY="$gpgw_GPGBINARY" ; [[ -n $gpgw_menu ]] && menu="$gpgw_menu" ; [[ -n $gpgw_menu ]] && menu="$gpgw_menu" ; [[ -n $gpgw_zenity_size ]] && zenity_size="$gpgw_zenity_size" ; [[ -n $gpgw_zenity_ask_size ]] && zenity_ask_size="$gpgw_zenity_ask_size" ; [[ -n $gpgw_zenity_ask_trust_size ]] && zenity_ask_trust_size="$gpgw_zenity_ask_trust_size" ; [[ -n $gpgw_zenity_key_size_h ]] && zenity_key_size_h="$gpgw_zenity_key_size_h" ; [[ -n $gpgw_zenity_key_size_w ]] && zenity_key_size_w="$gpgw_zenity_key_size_w" ; [[ -n $gpgw_rofi_prompt ]] && rofi_prompt="$gpgw_rofi_prompt" ; [[ -n $gpgw_gpg_sym_cipher ]] && sym_cipher="$gpgw_gpg_sym_cipher" ; [[ -n $gpgw_fsig_ext ]] && fsig_ext="$gpgw_fsig_ext" ; [[ -n $gpgw_detached_fsig ]] && detached_fsig="$gpgw_detached_fsig" ; [[ -n $gpgw_lang ]] && lang="$gpgw_lang" ; [[ -n $gpgw_rofi_font ]] && rofi_font="$gpgw_rofi_font" ; [[ -n $gpgw_rofi_lines ]] && rofi_lines="$gpgw_rofi_lines" ; [[ -n $gpgw_rofi_width ]] && rofi_width="$gpgw_rofi_width"
 
 usage() {
   cat <<EOF
@@ -143,7 +152,7 @@ fi
 rofi_cmd () {
   rofi_mesg="$(translate rofi_key)"
   [[ $secret -eq 1 ]] && rofi_mesg="$(translate rofi_seckey)"
-  rofi -dmenu -i -color-window "argb:f22d303b, argb:07c8389, #1d1f21" -color-normal "argb:0000000, #c4cbd4, argb:0404552, #4084d6, #f9f9f9" -color-active "argb:01d1f21, #65acff, argb:04b5160, #4491ed, #f9f9f9" -color-urgent "argb:01d1f21, #cc6666, argb:04b5160, #a54242, #f9f9f9" -lines 20 -width -60 -font "monospace 16" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
+  rofi -dmenu -i -color-window "argb:f22d303b, argb:07c8389, #1d1f21" -color-normal "argb:0000000, #c4cbd4, argb:0404552, #4084d6, #f9f9f9" -color-active "argb:01d1f21, #65acff, argb:04b5160, #4491ed, #f9f9f9" -color-urgent "argb:01d1f21, #cc6666, argb:04b5160, #a54242, #f9f9f9" -lines "$rofi_lines" -width "$rofi_width" -font "$rofi_font" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
 }
 
 dmenu_cmd () {
