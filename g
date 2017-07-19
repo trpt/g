@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 2.4.1
+# v. 2.4.2
 # © GPLv3
 
 ## General options
@@ -99,10 +99,10 @@ translate() {
 
   case $lang in
   ru)
-    [[ -z ${tr_ru[$1]} ]] && echo "${tr_en[$1]}" || echo "${tr_ru[$1]}"
+    [[ -z ${tr_ru[$1]} ]] && printf '%s\n' "${tr_en[$1]}" || printf '%s\n' "${tr_ru[$1]}"
   ;;
   *)
-    echo "${tr_en[$1]}"
+    printf '%s\n' "${tr_en[$1]}"
   ;;
   esac
 }
@@ -113,7 +113,7 @@ if [[ $1 = @(-h|--help) ]]; then
 fi
 
 if [[ !($(command -v zenity)) ]]; then
-  echo "$(translate zenity_req)"
+  printf '%s\n' "$(translate zenity_req)"
   exit 1
 fi
 
@@ -133,10 +133,7 @@ fi
 
 zen_progress() { tee >(zenity --progress --auto-close --no-cancel --title="$(translate title)" --text "$(translate gpg_running)" --pulsate) >&1 ;}
 
-die() {
-	echo "$@" >&2
-	exit 1
-}
+die() {	printf '%s\n' "$@" >&2;	exit 1 ;}
 
 zenity_die () {
   zenity --error --no-markup --no-wrap --text "$@"
@@ -184,7 +181,7 @@ import_key () {
   local oklabel="$(translate import)"
   local zenity_import=$(zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel")
   [[ -n $zenity_import ]] && \
-    { local result=$(echo "$zenity_import" | "$GPGBINARY" --no-tty --import -v --logger-fd 1)
+    { local result=$(printf '%s\n' "$zenity_import" | "$GPGBINARY" --no-tty --import -v --logger-fd 1)
     zenity --info --no-markup --no-wrap --title="$(translate import_result)" --text="${result//gpg: }"; }
 }
 
@@ -229,7 +226,7 @@ choose_uids () {
 edit_message () {
   [[ $decrypt -eq 1 ]] && local oklabel="$(translate decrypt)" || local oklabel="$(translate encrypt)"
   if [[ $old_zenity -eq 1 && -n $message ]]; then
-    echo -e "$message" > "$tmpfile"
+    printf '%s\n' "$message" > "$tmpfile"
     zenity $zenity_size --text-info --title="$zenity_title" --editable --ok-label="$oklabel" --filename="$tmpfile" 2>/dev/null && \
     rm "$tmpfile" || $(rm "$tmpfile" && false)
   else
@@ -239,14 +236,14 @@ edit_message () {
 
 encrypt_message () {
   if [[ ${#keys[@]} -ne 0 ]]; then
-    echo "$message" | "$GPGBINARY" --armor --encrypt --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
+    printf '%s\n' "$message" | "$GPGBINARY" --armor --encrypt --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
     zenity $zenity_size --text-info --title="$(translate encrypted_for) ${keys[*]//-r =}" 2>/dev/null || \
     (unset keys && encrypt_message)
   else
     if [[ -z "$message" ]]; then
       message=$(edit_message)
     else
-      message=$(echo -e "$message" | edit_message)
+      message=$(printf '%s\n' "$message" | edit_message)
     fi
     [[ $? -eq 1 ]] && exit 1
     choose_uids && \
@@ -258,26 +255,26 @@ encrypt_message_sym () {
   if [[ -z "$message" ]]; then
     message=$(edit_message)
   else
-    message=$(echo -e "$message" | edit_message)
+    message=$(printf '%s\n' "$message" | edit_message)
   fi
   [[ $? -eq 1 ]] && exit 1
-  echo "$message" | "$GPGBINARY" --armor --symmetric $gpg_sym_cipher --logger-fd 1 2>/dev/null | \
+  printf '%s\n' "$message" | "$GPGBINARY" --armor --symmetric $gpg_sym_cipher --logger-fd 1 2>/dev/null | \
   zenity $zenity_size --text-info --title="$(translate encrypted)" 2>/dev/null || \
   encrypt_message_sym
 }
 
 decrypt_message () {
   encrypted_message="$(edit_message)" || exit 1
-  message=$(echo "$encrypted_message" | "$GPGBINARY" --decrypt --no-tty --logger-fd 1 2>/dev/null | sed '0,/^gpg: /s/^gpg: /\n\nGPG:\ngpg: /' | sed 's/^gpg: //')
+  message=$(printf '%s\n' "$encrypted_message" | "$GPGBINARY" --decrypt --no-tty --logger-fd 1 2>/dev/null | sed '0,/^gpg: /s/^gpg: /\n\nGPG:\ngpg: /' | sed 's/^gpg: //')
   if [[ $old_zenity -eq 1 ]]; then
-    echo -e "$message" > "$tmpfile"
+    printf '%s\n' "$message" > "$tmpfile"
     zenity $zenity_size --title="$(translate decrypted_text)" --text-info --filename="$tmpfile" 2>/dev/null
     rm "$tmpfile"
   else
-    echo -e "$message" | zenity $zenity_size --title="$(translate decrypted_text)" --text-info 2>/dev/null
+    printf '%s\n' "$message" | zenity $zenity_size --title="$(translate decrypted_text)" --text-info 2>/dev/null
   fi & \
   if [[ $message == *'-----BEGIN PGP SIGNED MESSAGE-----'* ]]; then
-    sig_check=$(echo -e "$message" | "$GPGBINARY" --no-tty -v --verify --logger-fd 1 2>/dev/null)
+    sig_check=$(printf '%s\n' "$message" | "$GPGBINARY" --no-tty -v --verify --logger-fd 1 2>/dev/null)
     zenity --info --no-markup --no-wrap --title="$(translate sig_check)" --text="${sig_check//gpg: }"
   fi
 }
@@ -287,16 +284,16 @@ sign_message () {
   if [[ -n $sign_key && $sign_key != '=' ]]; then
     if [[ $encrypt -eq 1 ]]; then
       choose_uids || sign_message
-      echo -e "$message" | "$GPGBINARY" -es --armor --no-tty --local-user "$sign_key" --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
+      printf '%s\n' "$message" | "$GPGBINARY" -es --armor --no-tty --local-user "$sign_key" --always-trust "${keys[@]}" --logger-fd 1 2>/dev/null | \
       zenity $zenity_size --title="$(translate signed_by) ${sign_key/#=/}, $(translate encrypted_for) ${keys[*]//-r =}" --text-info 2>/dev/null
     else
       if [[ $old_zenity -eq 1 ]]; then
-        echo -e "$message" | "$GPGBINARY" --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
-        zenity $zenity_size --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text-info --filename="$tmpfile" 2>/dev/null
+        printf '%s\n' "$message" | "$GPGBINARY" --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null > "$tmpfile"
+        zenity $zenity_size --title="$(translate signed_by) $(printf '%s\n' ${sign_key/#=/})" --text-info --filename="$tmpfile" 2>/dev/null
         rm "$tmpfile"
       else
-        echo -e "$message" | "$GPGBINARY" --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null | \
-        zenity $zenity_size --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text-info 2>/dev/null
+        printf '%s\n' "$message" | "$GPGBINARY" --clearsign --armor --no-tty --local-user "$sign_key" --logger-fd 1 2>/dev/null | \
+        zenity $zenity_size --title="$(translate signed_by) $(printf '%s\n' ${sign_key/#=/})" --text-info 2>/dev/null
       fi
     fi
 
@@ -305,7 +302,7 @@ sign_message () {
     if [[ -z "$message" ]]; then
       message=$(edit_message)
     else
-      message=$(echo -e "$message" | edit_message)
+      message=$(printf '%s\n' "$message" | edit_message)
     fi
     [[ $? -eq 1 ]] && exit 1
     secret=1
@@ -318,7 +315,7 @@ encrypt_file () {
   if [[ ${#keys[@]} -ne 0 ]]; then
     encrypt_file_output=$("$GPGBINARY" --logger-fd 1 --output "${file_path}.gpg" "${keys[@]}" --always-trust --encrypt "$file_path" 2>&1 | zen_progress)
     if [[ $? -eq 0 ]]; then
-      zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) ${file_path}.gpg $(translate for):$(echo -e \\n${keys[@]//-r =})"
+      zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) ${file_path}.gpg $(translate for):$(printf '%b\n' \\n${keys[@]//-r =})"
     else
       zenity_die "$encrypt_file_output"
     fi
@@ -343,7 +340,7 @@ encrypt_file_sym () {
   [[ $? -eq 1 ]] && exit 1
   encrypt_file_sym_output=$("$GPGBINARY" --logger-fd 1 --output "${file_path}.gpg" $gpg_sym_cipher --symmetric "$file_path" 2>&1 | zen_progress)
   if [[ $? -eq 0 ]]; then
-    zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) $(echo -e ${file_path}.gpg)"
+    zenity --info --no-markup --no-wrap --title="$zenity_title" --text="$(translate file_enc_as) $(printf '%b\n' ${file_path}.gpg)"
   else
     zenity_die "$encrypt_file_sym_output"
   fi
@@ -365,7 +362,7 @@ sign_file() {
     sign_file_output=$("$GPGBINARY" --logger-fd 1 --no-tty --local-user "$sign_key" --output "$signed_file" --sign "$file_path" 2>&1 | zen_progress)
   fi
   if [[ $? -eq 0 ]]; then
-    zenity --info --no-markup --no-wrap --title="$(translate signed_by) $(echo -e ${sign_key/#=/})" --text="$(translate file_sig_created) $(echo -e $signed_file)"
+    zenity --info --no-markup --no-wrap --title="$(translate signed_by) $(printf '%b\n' ${sign_key/#=/})" --text="$(translate file_sig_created) $(printf '%b\n' $signed_file)"
   else
     zenity_die "$sign_file_output"
   fi
@@ -629,6 +626,6 @@ case $1 in
   *)
     [[ -z "$1" ]] && exit
     output=$("$GPGBINARY" -v --logger-fd 1 $@ 2>&1 | zen_progress)
-    echo "${output//gpg: }" | zenity $zenity_size --text-info --title="$(translate gpg_output)"
+    printf '%s\n' "${output//gpg: }" | zenity $zenity_size --text-info --title="$(translate gpg_output)"
   ;;
 esac
