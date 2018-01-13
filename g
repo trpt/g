@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GnuPG wrapper by Trepet
-# v. 2.4.2
+# v. 2.4.3
 # © GPLv3
 
 ## General options
@@ -149,7 +149,7 @@ fi
 rofi_cmd () {
   rofi_mesg="$(translate rofi_key)"
   [[ $secret -eq 1 ]] && rofi_mesg="$(translate rofi_seckey)"
-  rofi -dmenu -i -color-window "argb:f22d303b, argb:07c8389, #1d1f21" -color-normal "argb:0000000, #c4cbd4, argb:0404552, #4084d6, #f9f9f9" -color-active "argb:01d1f21, #65acff, argb:04b5160, #4491ed, #f9f9f9" -color-urgent "argb:01d1f21, #cc6666, argb:04b5160, #a54242, #f9f9f9" -lines "$rofi_lines" -width "$rofi_width" -font "$rofi_font" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
+  rofi -dmenu -i -color-window "argb:f22d303b, argb:07c83890, #1d1f21" -color-normal "argb:00000000, #c4cbd4, argb:04045520, #4084d6, #f9f9f9" -color-active "argb:01d1f210, #65acff, argb:04b51600, #4491ed, #f9f9f9" -color-urgent "argb:01d1f210, #cc6666, argb:04b51600, #a54242, #f9f9f9" -lines "$rofi_lines" -width "$rofi_width" -font "$rofi_font" -no-levenshtein-sort -disable-history -p "$rofi_prompt" -mesg "$rofi_mesg"
 }
 
 dmenu_cmd () {
